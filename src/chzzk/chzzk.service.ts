@@ -27,16 +27,20 @@ export class ChzzkService {
   getChatClient(channelId: string): ChzzkChat {
     if (!this.chatClients[channelId]) {
       this.chatClients[channelId] = this.initChat(channelId);
-      this.chatClients[channelId].connect().then(() => {});
+      this.chatClients[channelId].connect()
+      .then(() => {})
     }
     return this.chatClients[channelId];
   }
 
   @OnEvent('widget.open')
-  private handleChatConnect(args: { channelId: string }) {
+  private async handleChatConnect(args: { channelId: string }) {
     this.logger.debug('widget open event:', { ...args });
     const { channelId } = args;
-    this.getChatClient(channelId);
+    const status = await this.client.live.status(channelId);
+    if(status!=null){
+      this.getChatClient(channelId);
+    }
   }
 
   @OnEvent('widget.close')

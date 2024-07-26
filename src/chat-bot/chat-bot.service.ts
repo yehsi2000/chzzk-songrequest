@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import ytdl from 'ytdl-core';
+import {google} from'googleapis';
 import { SongRequestService } from '../song-request/song-request.service';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ChatMessageEvent, SendChatMessageEvent } from './chat-bot.events';
@@ -57,7 +58,7 @@ export class ChatBotService {
       return;
     }
     // split chat message
-    const [command, args] = event.message.split(/\s/, 2);
+    const [command, args, _] = event.message.split(/\s(.*)/s);
     this.logger.debug(`call command: ${command}, ${args}`);
     await this.callCommand(command, args, event);
   }
@@ -73,6 +74,21 @@ export class ChatBotService {
     );
   }
 
+  private get_google = async (url:string):Promise<string> => {
+    let ret = await google.youtube('v3').search.list({
+      "auth": process.env.API_KEY,
+      "part":["snippet"],
+      "maxResults":1,
+      "q":url,
+      "type":["video"],
+    }).then((res)=>{
+      return res.data.items[0].id.videoId;
+    }, (err)=>{
+      return null;
+    });
+    return ret;
+  }
+
   private readonly _songRequest = async (
     event: ChatMessageEvent,
     url: string,
@@ -80,6 +96,7 @@ export class ChatBotService {
     // youtube URL 체크
     try {
       const mention = event.nickname ? `@${event.nickname}: ` : '';
+      /*
       if (!url || url.trim() == '') {
         this.sendChat(
           event.service,
@@ -88,8 +105,14 @@ export class ChatBotService {
         );
         return;
       }
+      */
+      let vid_id = await this.get_google(url);
+      if(vid_id == null){
+        vid_id = url;
+      }
+      
       // validate video ID
-      if (!ytdl.validateURL(url) && !ytdl.validateID(url)) {
+      if (!ytdl.validateURL(url) && !ytdl.validateID(await vid_id)) {
         this.sendChat(
           event.service,
           event.channelId,
@@ -97,9 +120,17 @@ export class ChatBotService {
         );
         return;
       }
-      const info = await ytdl.getInfo(ytdl.getURLVideoID(url));
+      const info = await ytdl.getInfo(vid_id);
+      if(Number(info.player_response.videoDetails.lengthSeconds) >= 6000){
+        this.sendChat(
+          event.service,
+          event.channelId,
+          `${mention}너무 긴 영상입니다. (10분이상)`,
+        );
+        return;
+      }
       // normalize url
-      url = 'https://www.youtube.com/watch?v=' + ytdl.getVideoID(url);
+      url = 'https://www.youtube.com/watch?v=' + vid_id;
       const allowedToEmbed =
         info.videoDetails.isCrawlable && !info.videoDetails.isPrivate;
       this.logger.debug('요청 곡 정보', {
