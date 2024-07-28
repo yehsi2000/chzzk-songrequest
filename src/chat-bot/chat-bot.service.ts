@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import ytdl from 'ytdl-core';
-import {google} from'googleapis';
+import { google } from 'googleapis';
 import { SongRequestService } from '../song-request/song-request.service';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { ChatMessageEvent, SendChatMessageEvent } from './chat-bot.events';
@@ -74,24 +74,30 @@ export class ChatBotService {
     );
   }
 
-  private get_google = async (url:string):Promise<string> => {
-    let ret = await google.youtube('v3').search.list({
-      "auth": process.env.API_KEY,
-      "part":["snippet"],
-      "maxResults":1,
-      "q":'"'+url+'"',
-      "type":["video"],
-    }).then((res)=>{
-      if(res.data.items.length>0){
-        return res.data.items[0].id.videoId;
-      } else {
-        return "";
-      }
-    }, (err)=>{
-      return null;
-    });
+  private get_google = async (url: string): Promise<string> => {
+    let ret = await google
+      .youtube('v3')
+      .search.list({
+        auth: process.env.API_KEY,
+        part: ['snippet'],
+        maxResults: 1,
+        q: '"' + url + '"',
+        type: ['video'],
+      })
+      .then(
+        (res) => {
+          if (res.data.items.length > 0) {
+            return res.data.items[0].id.videoId;
+          } else {
+            return '';
+          }
+        },
+        (err) => {
+          return null;
+        },
+      );
     return ret;
-  }
+  };
 
   private readonly _songRequest = async (
     event: ChatMessageEvent,
@@ -100,7 +106,7 @@ export class ChatBotService {
     // youtube URL 체크
     try {
       const mention = event.nickname ? `@${event.nickname}: ` : '';
-      /*
+
       if (!url || url.trim() == '') {
         this.sendChat(
           event.service,
@@ -109,19 +115,23 @@ export class ChatBotService {
         );
         return;
       }
-      */
-      let vid_id = await this.get_google(url);
-      if(vid_id == null){
-        vid_id = url;
-      } else if(vid_id==""){
-        this.sendChat(
-          event.service,
-          event.channelId,
-          `${mention}검색된 결과가 없습니다.`,
-        );
-        return;
-      } else {
-        if (!ytdl.validateURL(await vid_id) && !ytdl.validateID(await vid_id)) {
+
+      if (
+        url.match(/.*youtu\.be.*/) == null &&
+        url.match(/.*youtube\.com.*/) == null
+      ) {
+        let query = url.replace(" ","|");
+        let vid_id = await this.get_google(query);
+        if (vid_id != null) {
+          url = vid_id;
+        } else if (vid_id == '') {
+          this.sendChat(
+            event.service,
+            event.channelId,
+            `${mention}검색된 결과가 없습니다.`,
+          );
+          return;
+        } else if (!ytdl.validateURL(url) && !ytdl.validateID(url)) {
           this.sendChat(
             event.service,
             event.channelId,
@@ -130,11 +140,12 @@ export class ChatBotService {
           return;
         }
       }
-      
+
       // validate video ID
-      
-      const info = await ytdl.getInfo(vid_id);
-      if(Number(info.player_response.videoDetails.lengthSeconds) >= 6000){
+
+      const info = await ytdl.getInfo(url);
+      console.log("@@@@@@@@@@@length",info.player_response.videoDetails.lengthSeconds);
+      if (Number(await info.player_response.videoDetails.lengthSeconds) >= 6000) {
         this.sendChat(
           event.service,
           event.channelId,
@@ -143,7 +154,7 @@ export class ChatBotService {
         return;
       }
       // normalize url
-      url = 'https://www.youtube.com/watch?v=' + vid_id;
+      url = 'https://www.youtube.com/watch?v=' + url;
       const allowedToEmbed =
         info.videoDetails.isCrawlable && !info.videoDetails.isPrivate;
       this.logger.debug('요청 곡 정보', {
@@ -412,11 +423,15 @@ export class ChatBotService {
           '대기열에 해당 순서의 곡이 없습니다.',
         );
       }
-      if (song.requested_by != event.userId) {
+      if (
+        song.requested_by != event.userId &&
+        event.role !== 'streamer' &&
+        event.role !== 'manager'
+      ) {
         this.sendChat(
           event.service,
           event.channelId,
-          '신청한 곡만 삭제할 수 있습니다.',
+          '곡을 신청한 사람이나 관리자만 삭제할 수 있습니다.',
         );
         return;
       }
