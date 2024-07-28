@@ -79,10 +79,14 @@ export class ChatBotService {
       "auth": process.env.API_KEY,
       "part":["snippet"],
       "maxResults":1,
-      "q":url,
+      "q":'"'+url+'"',
       "type":["video"],
     }).then((res)=>{
-      return res.data.items[0].id.videoId;
+      if(res.data.items.length>0){
+        return res.data.items[0].id.videoId;
+      } else {
+        return "";
+      }
     }, (err)=>{
       return null;
     });
@@ -109,17 +113,26 @@ export class ChatBotService {
       let vid_id = await this.get_google(url);
       if(vid_id == null){
         vid_id = url;
-      }
-      
-      // validate video ID
-      if (!ytdl.validateURL(url) && !ytdl.validateID(await vid_id)) {
+      } else if(vid_id==""){
         this.sendChat(
           event.service,
           event.channelId,
-          `${mention}입력한 주소가 올바르지 않습니다.`,
+          `${mention}검색된 결과가 없습니다.`,
         );
         return;
+      } else {
+        if (!ytdl.validateURL(await vid_id) && !ytdl.validateID(await vid_id)) {
+          this.sendChat(
+            event.service,
+            event.channelId,
+            `${mention}입력한 주소가 올바르지 않습니다.`,
+          );
+          return;
+        }
       }
+      
+      // validate video ID
+      
       const info = await ytdl.getInfo(vid_id);
       if(Number(info.player_response.videoDetails.lengthSeconds) >= 6000){
         this.sendChat(
