@@ -145,7 +145,7 @@ export class ChatBotService {
 
       const info = await ytdl.getInfo(url);
       console.log("@@@@@@@@@@@length",info.player_response.videoDetails.lengthSeconds);
-      if (Number(await info.player_response.videoDetails.lengthSeconds) >= 6000) {
+      if (Number(await info.player_response.videoDetails.lengthSeconds) >= 600) {
         this.sendChat(
           event.service,
           event.channelId,
@@ -154,7 +154,8 @@ export class ChatBotService {
         return;
       }
       // normalize url
-      url = 'https://www.youtube.com/watch?v=' + url;
+      //url = 'https://www.youtube.com/watch?v=' + url;
+      url = info.videoDetails.video_url;
       const allowedToEmbed =
         info.videoDetails.isCrawlable && !info.videoDetails.isPrivate;
       this.logger.debug('요청 곡 정보', {
