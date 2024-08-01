@@ -120,7 +120,7 @@ export class ChatBotService {
         url.match(/.*youtu\.be.*/) == null &&
         url.match(/.*youtube\.com.*/) == null
       ) {
-        let query = url.replace(" ","|");
+        let query = url.replaceAll(" ","|");
         let vid_id = await this.get_google(query);
         if (vid_id != null) {
           url = vid_id;
@@ -131,14 +131,14 @@ export class ChatBotService {
             `${mention}검색된 결과가 없습니다.`,
           );
           return;
-        } else if (!ytdl.validateURL(url) && !ytdl.validateID(url)) {
+        }
+      } else if (!ytdl.validateURL(url) && !ytdl.validateID(url)) {
           this.sendChat(
             event.service,
             event.channelId,
             `${mention}입력한 주소가 올바르지 않습니다.`,
           );
           return;
-        }
       }
 
       // validate video ID

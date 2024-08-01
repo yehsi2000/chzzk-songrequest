@@ -105,7 +105,7 @@ class Widget {
         host: 'https://www.youtube-nocookie.com',
         playerVars: {
           autoplay: 1,
-          controls: 0,
+          controls: 1,
           modestbranding: 0,
           rel: 0,
           disablekb: 1,
@@ -171,7 +171,7 @@ class Widget {
         const nextSong = songRequests.shift();
         console.debug('play next song');
         playSong(nextSong);
-      }
+      } d
     };
 
     const deleteSongFromQueue = (song) => {
