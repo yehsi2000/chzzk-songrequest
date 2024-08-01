@@ -109,6 +109,7 @@ class Widget {
           modestbranding: 0,
           rel: 0,
           disablekb: 1,
+          enablejsapi : 1,
         },
         events: {
           onReady: onPlayerReady,
@@ -213,6 +214,19 @@ class Widget {
         if (playerState !== 1) {
           // if player is not playing, play video now
           playNextSong();
+        }
+      });
+
+      socket.on('add_song_' + channelId, (data) => {
+        const song = JSON.parse(data);
+        console.debug('new song data from server:', song);
+        songRequests.push(song);
+        if (playerState !== 1) {
+          // if player is not playing, play video now
+          console.debug(songRequests.length);
+          if (songRequests.length == 1){
+            playNextSong();
+          }
         }
       });
 

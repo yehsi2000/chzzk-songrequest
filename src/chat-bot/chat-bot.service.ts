@@ -144,12 +144,19 @@ export class ChatBotService {
       // validate video ID
 
       const info = await ytdl.getInfo(url);
-      console.log("@@@@@@@@@@@length",info.player_response.videoDetails.lengthSeconds);
       if (Number(await info.player_response.videoDetails.lengthSeconds) >= 600) {
         this.sendChat(
           event.service,
           event.channelId,
           `${mention}너무 긴 영상입니다. (10분이상)`,
+        );
+        return;
+      }
+      if (Number(await info.player_response.videoDetails.lengthSeconds) == 0) {
+        this.sendChat(
+          event.service,
+          event.channelId,
+          `${mention}라이브 영상이 검색되었습니다`,
         );
         return;
       }

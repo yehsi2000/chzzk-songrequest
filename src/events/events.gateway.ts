@@ -80,7 +80,7 @@ export class EventsGateway {
     this.server
       .to('widget_' + channel_id)
       .emit(
-        'next_song_' + channel_id,
+        'add_song_' + channel_id,
         JSON.stringify(event.data(), this.replacer),
       );
   }
